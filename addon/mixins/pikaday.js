@@ -2,32 +2,15 @@
 import Ember from 'ember';
 import moment from 'moment';
 
-const {
-  isPresent,
-  run,
-  getProperties
-} = Ember;
-
-const assign = Ember.assign || Ember.merge;
+const { isPresent } = Ember;
 
 export default Ember.Mixin.create({
-
   _options: Ember.computed('options', 'i18n', {
     get() {
       let options = this._defaultOptions();
 
       if (isPresent(this.get('i18n'))) {
-        if(isPresent(this.get('i18n').t)) {
-          options.i18n = {
-            previousMonth : this.get('i18n').t('previousMonth').toString(),
-            nextMonth     : this.get('i18n').t('nextMonth').toString(),
-            months        : this.get('i18n').t('months').toString().split(','),
-            weekdays      : this.get('i18n').t('weekdays').toString().split(','),
-            weekdaysShort : this.get('i18n').t('weekdaysShort').toString().split(',')
-          };
-        } else {
-          options.i18n = this.get('i18n');
-        }
+        options.i18n = this.get('i18n');
       }
       if (isPresent(this.get('position'))) {
         options.position = this.get('position');
@@ -36,7 +19,7 @@ export default Ember.Mixin.create({
         options.reposition = this.get('reposition');
       }
 
-      assign(options, this.get('options') || {});
+      Ember.merge(options, this.get('options') || {});
       return options;
     }
   }),
@@ -48,10 +31,10 @@ export default Ember.Mixin.create({
       field: this.get('field'),
       container: this.get('pikadayContainer'),
       bound: this.get('pikadayContainer') ? false : true,
-      onOpen: run.bind(this, this.onPikadayOpen),
-      onClose: run.bind(this, this.onPikadayClose),
-      onSelect: run.bind(this, this.onPikadaySelect),
-      onDraw: run.bind(this, this.onPikadayRedraw),
+      onOpen: Ember.run.bind(this, this.onPikadayOpen),
+      onClose: Ember.run.bind(this, this.onPikadayClose),
+      onSelect: Ember.run.bind(this, this.onPikadaySelect),
+      onDraw: Ember.run.bind(this, this.onPikadayRedraw),
       firstDay: (typeof firstDay !== 'undefined') ? parseInt(firstDay, 10) : 1,
       format: this.get('format') || 'DD.MM.YYYY',
       yearRange: this.determineYearRange(),
@@ -61,22 +44,15 @@ export default Ember.Mixin.create({
     };
   },
 
-	/**
-	 * When updating attrs, we need to reset some things in case they've changed.
-	 * @public
-	 * @memberOf {Mixins.Pikaday}
-	 * @return {undefined}
-	 */
-  didUpdateAttrs() {
-    run.later(() => {
-      this.setMinDate();
-      this.setMaxDate();
-      this.setPikadayDate();
+  didUpdateAttrs({ newAttrs }) {
+    this._super(...arguments);
+    this.setPikadayDate();
+    this.setMinDate();
+    this.setMaxDate();
 
-      if (this.get('options')) {
-        this._updateOptions();
-      }
-    });
+    if(newAttrs.options) {
+      this._updateOptions();
+    }
   },
 
   didRender() {
@@ -92,7 +68,6 @@ export default Ember.Mixin.create({
   },
 
   willDestroyElement() {
-    this._super(...arguments);
     this.get('pikaday').destroy();
   },
 
@@ -110,41 +85,21 @@ export default Ember.Mixin.create({
   },
 
   setMinDate: function() {
-    const { pikaday, minDate, value } = getProperties(this, [ 'pikaday', 'minDate', 'value' ]);
-
-    if (minDate) {
-      const _minDate = new Date(minDate.getTime());
-      pikaday.setMinDate(_minDate);
-
-      // If the current date is lower than minDate we set date to minDate
-      run.schedule('sync', () => {
-        if (value && moment(value).isBefore(minDate, 'day')) {
-          pikaday.setDate(minDate);
-        }
-      });
+    if (this.get('minDate')) {
+      this.get('pikaday').setMinDate(this.get('minDate'));
     }
   },
 
   setMaxDate: function() {
-    const { pikaday, maxDate, value }  = getProperties(this, [ 'pikaday', 'maxDate', 'value' ]);
-
-    if (maxDate) {
-      const _maxDate = new Date(maxDate.getTime());
-      pikaday.setMaxDate(_maxDate);
-
-      // If the current date is greater than maxDate we set date to maxDate
-      run.schedule('sync', () => {
-        if (value > maxDate) {
-          pikaday.setDate(maxDate);
-        }
-      });
+    if (this.get('maxDate')) {
+      this.get('pikaday').setMaxDate(this.get('maxDate'));
     }
   },
 
-  onOpen() {},
-  onClose() {},
-  onSelection() {},
-  onDraw() {},
+  onOpen(){},
+  onClose(){},
+  onSelection(){},
+  onDraw(){},
 
   onPikadaySelect: function() {
     this.userSelectedDate();
